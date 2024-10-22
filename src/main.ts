@@ -47,7 +47,7 @@ function onSessionStarted(session: XRSession) {
     const cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
 
-    function onXRFrame(t: number, frame: XRFrame) {
+    function onXRFrame(_t: number, frame: XRFrame) {
       session.requestAnimationFrame(onXRFrame);
 
       const pose = frame.getViewerPose(refSpace);
