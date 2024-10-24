@@ -6,9 +6,10 @@ export default defineConfig({
   plugins: [
     mkcert({ certFileName: './localhost.pem', keyFileName: './localhost-key.pem' })
   ],
+  publicDir: "public",
   server: {
     port: 3000,
-    https: false,
+    https: true,
   },
   build: {
     rollupOptions: {
