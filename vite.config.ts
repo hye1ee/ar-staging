@@ -10,4 +10,11 @@ export default defineConfig({
     port: 3000,
     https: false,
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html'
+      }
+    }
+  }
 });
