@@ -39,6 +39,7 @@ if ('xr' in navigator) {
     }
   });
 } else {
+  window.location.href = `xrviewer://open-url/?url=${window.location.href}`
   test.innerText = "WebXR not available"
   button.disabled = true;
 }
