@@ -164,7 +164,7 @@ async function startAR() {
   }
 }
 
-function onXRFrame(time: DOMHighResTimeStamp, frame: XRFrame) {
+function onXRFrame(_time: DOMHighResTimeStamp, frame: XRFrame) {
   const session = frame.session;
   session.requestAnimationFrame(onXRFrame);
 
