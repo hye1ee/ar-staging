@@ -136,46 +136,51 @@
 // startWebXR();
 
 //
-import WebXRPolyfill from 'webxr-polyfill';
+// import WebXRPolyfill from 'webxr-polyfill';
 
-const startButton = document.createElement('button');
-// Polyfill 초기화
-const polyfill = new WebXRPolyfill();
-console.log('Polyfill initialized:', polyfill);
+// const startButton = document.createElement('button');
+// // Polyfill 초기화
+// const polyfill = new WebXRPolyfill();
+// console.log('Polyfill initialized:', polyfill);
 
-let xrSession: XRSession | null = null;
-let xrRefSpace: XRReferenceSpace | null = null;
+// let xrSession: XRSession | null = null;
+// let xrRefSpace: XRReferenceSpace | null = null;
 
-async function startAR() {
-  try {
-    xrSession = await navigator.xr?.requestSession('immersive-ar', {
-      requiredFeatures: ['local-floor'], // 필수 기능 설정
-    }) ?? null;
+// async function startAR() {
+//   try {
+//     const xrSession = await navigator.xr?.requestSession('immersive-ar');
 
-    if (xrSession) {
-      startButton.innerText += "\n get session"
-      xrRefSpace = await xrSession.requestReferenceSpace('local-floor');
-      xrSession.requestAnimationFrame(onXRFrame);
-      console.log('AR Session started');
-    }
-    else startButton.innerText += "\n failed"
-  } catch (error) {
-    startButton.innerText += `\n failed to start ar ${error}`
-  }
-}
+//     // xrSession = await navigator.xr?.requestSession('immersive-ar', {
+//     //   requiredFeatures: ['hit-test'],
+//     //   optionalFeatures: ['dom-overlay'],
+//     //   // domOverlay: { root: navigator },
+//     // }) ?? null;
 
-function onXRFrame(_time: DOMHighResTimeStamp, frame: XRFrame) {
-  const session = frame.session;
-  session.requestAnimationFrame(onXRFrame);
+//     if (xrSession) {
+//       startButton.innerText += "\n successed"
+//       // startButton.innerText += "\n get session"
+//       // xrRefSpace = await xrSession.requestReferenceSpace("viewer");
+//       // xrSession.requestAnimationFrame(onXRFrame);
+//       // console.log('AR Session started');
+//     }
+//     else startButton.innerText += "\n failed"
+//   } catch (error) {
+//     startButton.innerText += `\n failed to start ar ${error}`
+//   }
+// }
 
-  const pose = frame.getViewerPose(xrRefSpace!);
-  if (pose) {
-    console.log('Viewer Pose detected:', pose);
-    // AR 콘텐츠 렌더링 코드 추가
-  }
-}
+// function onXRFrame(_time: DOMHighResTimeStamp, frame: XRFrame) {
+//   const session = frame.session;
+//   session.requestAnimationFrame(onXRFrame);
 
-document.body.appendChild(startButton);
-startButton.innerText = "start ar";
-startButton.onclick = startAR
+//   const pose = frame.getViewerPose(xrRefSpace!);
+//   if (pose) {
+//     console.log('Viewer Pose detected:', pose);
+//     // AR 콘텐츠 렌더링 코드 추가
+//   }
+// }
+
+// document.body.appendChild(startButton);
+// startButton.innerText = "start ar";
+// startButton.onclick = startAR
 
