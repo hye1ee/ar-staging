@@ -1,15 +1,30 @@
 import * as THREE from 'three';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
 import SessionProvider from './SessionProvider';
 import DebugLogger from '../components/DebugLogger';
 import { ModelRenderer } from './ModelRenderer';
+import GuideCircle from '../components/GuideCircle';
+import { getTranformProps } from './utils';
+import AlertLogger from '../components/AlertLogger';
+
+export type RenderMode = "hit" | "anchor"
+export type ModelMode = "pause" | "play" | "stop"
 
 export default class ThreeRenderer {
   private static instance: ThreeRenderer;
+
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
-  private camera: THREE.PerspectiveCamera;
-  private guideCircle: THREE.Group;
 
+  private camera: THREE.PerspectiveCamera;
+  private renderMode: RenderMode = "hit";
+  private modelMode: ModelMode = "stop";
+
+  private prevTime: number = 0;
+  private hdriUrl: string = "/src/assets/studio.hdr";
+
+  private renderCallback: (() => void)[] = [];
 
   private constructor() {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -19,24 +34,8 @@ export default class ThreeRenderer {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 1000);
 
-    // Test guideCircle
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      opacity: 0.1,
-      transparent: true,
-    });
-
-    const guide1 = new THREE.Mesh(new THREE.CircleGeometry(0.15, 64), material);
-    const guide2 = new THREE.Mesh(new THREE.CircleGeometry(0.10, 64), material);
-    guide2.position.z += 0.01
-    const guide3 = new THREE.Mesh(new THREE.CircleGeometry(0.05, 64), material);
-    guide3.position.z += 0.02
-
-    this.guideCircle = new THREE.Group();
-    this.guideCircle.add(guide1, guide2, guide3);
-
-    this.guideCircle.visible = false;
-    this.scene.add(this.guideCircle);
+    this.scene.add(GuideCircle.getInstance().getModel());
+    this.setHDRIEnv();
   }
 
   public static getInstance(): ThreeRenderer {
@@ -49,53 +48,118 @@ export default class ThreeRenderer {
   public appendToDOM(container: HTMLElement): void {
     container.appendChild(this.renderer.domElement);
   }
-
   public connectSession(session: XRSession): void {
     this.renderer.xr.setSession(session);
     DebugLogger.getInstance().log("Session connected.");
   }
-
-  public startRendering(): void {
-    this.renderer.setAnimationLoop((_timestamp, frame) => {
-      if (frame) this.hitTest(frame);
-      this.renderer.render(this.scene, this.camera);
-      ModelRenderer.getInstance().update();
-    });
-    DebugLogger.getInstance().log("Start rendering loop.");
+  public addRenderCallback(callback: () => void): void {
+    this.renderCallback.push(callback);
   }
 
-  public hitTest(frame: XRFrame): void {
-    const session = SessionProvider.getInstance().getSession();
-    const hitTestSource = SessionProvider.getInstance().getHitTestSource();
-    if (!session || !hitTestSource) return;
-
-    // const referenceSpace = await session.requestReferenceSpace("local-floor");
-    const hitTestResults = frame.getHitTestResults(hitTestSource);
-
-    // hit-test 결과가 존재하면 큐브 위치 업데이트
-    if (hitTestResults.length > 0) {
-      const hitPose = hitTestResults[0].getPose(this.renderer.xr.getReferenceSpace() as XRReferenceSpace);
-
-      if (hitPose) {
-        const { position, orientation } = hitPose.transform;
-
-        this.guideCircle.position.set(position.x, position.y, position.z);
-        const euler = new THREE.Euler().setFromQuaternion(new THREE.Quaternion(
-          orientation.x,
-          orientation.y,
-          orientation.z,
-          orientation.w
-        ), "YXZ");
-        euler.x = -Math.PI / 2; // 바닥과 평행하도록 X축으로 90도 회전
-        this.guideCircle.setRotationFromEuler(euler);
-        this.guideCircle.visible = true;
+  /* Rendering Loop */
+  public startRendering(): void {
+    this.renderer.setAnimationLoop((time, frame) => {
+      if (frame) {
+        if (this.renderMode === "hit") this.hitLoop(frame);
+        else if (this.renderMode === "anchor") this.anchorLoop(frame, time);
+        this.renderer.render(this.scene, this.camera);
+        this.renderCallback.forEach((callback) => callback());
       }
-    } else {
-      this.guideCircle.visible = false;
+    });
+    DebugLogger.getInstance().log("Start rendering loop.");
+    AlertLogger.getInstance().alert("Start Rendering")
+  }
+
+  public getRenderMode(): RenderMode {
+    return this.renderMode;
+  }
+
+  public switchRenderMode(mode: RenderMode): void {
+    if (this.renderMode === mode) return;
+    this.renderMode = mode;
+
+    if (this.renderMode === "hit") { // anchor -> hit
+      ModelRenderer.getInstance().disloacte();
+      DebugLogger.getInstance().log("Mode change: hit");
+    } else if (this.renderMode === "anchor") { // hit -> anchor
+      GuideCircle.getInstance().hideGuide();
+      DebugLogger.getInstance().log("Mode change: anchor");
     }
   }
 
-  // 외부에서 Three.js의 scene과 camera에 접근할 필요가 있는 경우에만 제공
+  /* If hit test result exist, update guide circle */
+  public hitLoop(frame: XRFrame): void {
+    const hitPose = this.getHitPose(frame);
+    if (hitPose) { /* Update and show guide, only when the hit test successed */
+      const { position, orientation } = getTranformProps(hitPose.transform);
+      GuideCircle.getInstance().updatePos(position);
+      GuideCircle.getInstance().updateRot(orientation);
+      GuideCircle.getInstance().showGuide();
+      return;
+    }
+    /* When hit test failed, hide guide */
+    GuideCircle.getInstance().hideGuide();
+  }
+
+  /* Run hit test and return result */
+  public getHitPose(frame: XRFrame): XRPose | null {
+    const session = SessionProvider.getInstance().getSession();
+    const hitTestSource = SessionProvider.getInstance().getHitTestSource();
+    if (!session || !hitTestSource) return null;
+
+    const hitTestResults = frame.getHitTestResults(hitTestSource);
+    const hitPose = hitTestResults[0]?.getPose(this.renderer.xr.getReferenceSpace() as XRReferenceSpace);
+    return hitPose ?? null;
+  }
+
+  /* If anchor exist, update model */
+  public anchorLoop(frame: XRFrame, time: number): void {
+    if (!ModelRenderer.getInstance().isLocated()) {
+      const hitPose = this.getHitPose(frame);
+      if (!hitPose) return;
+      const { position, orientation } = getTranformProps(hitPose.transform);
+      ModelRenderer.getInstance().locate(position, orientation);
+    }
+    /* Animation loop */
+    ModelRenderer.getInstance().update((time - this.prevTime) / 1000);
+    this.prevTime = time;
+  }
+
+  public setHDRIEnv(): void {
+    DebugLogger.getInstance().log("Start to load HDRI Env");
+
+    const rgbeLoader = new RGBELoader();
+
+    rgbeLoader.load(this.hdriUrl, (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      this.scene.environment = texture;
+
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = 1.0;
+
+      DebugLogger.getInstance().log("HDR environment map applied.");
+    });
+  }
+
+
+  public getModelMode(): ModelMode {
+    return this.modelMode;
+  }
+
+  public switchModelMode(mode: ModelMode): void {
+    if (this.modelMode === mode) return;
+    this.modelMode = mode;
+
+    if (this.modelMode === "play") {
+      ModelRenderer.getInstance().playAnimation();
+    } else if (this.modelMode === "pause") {
+      ModelRenderer.getInstance().pauseAnimation();
+    } else if (this.modelMode === "stop") {
+      ModelRenderer.getInstance().stopAnimation();
+    }
+  }
+
+  /* TODO: Remove unnecessary utils */
   public getCamera(): THREE.PerspectiveCamera {
     return this.camera;
   }

@@ -33,6 +33,7 @@ export default class DebugLogger {
 
   // 메시지를 HTML 요소에 출력
   public log(message: any): void {
+    console.log(message);
     const formattedMessage =
       typeof message === "object" ? `${JSON.stringify(message)}` : message;
     this.logElement.innerText += `${formattedMessage}\n`;

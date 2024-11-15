@@ -1,4 +1,4 @@
-// import WebXRPolyfill from 'webxr-polyfill';
+import WebXRPolyfill from 'webxr-polyfill';
 import DebugLogger from '../components/DebugLogger';
 
 export default class SessionProvider {
@@ -11,7 +11,7 @@ export default class SessionProvider {
   // Singleton Instance
   public static getInstance(): SessionProvider {
     if (!SessionProvider.instance) {
-      // const polyfill = new WebXRPolyfill(); // just in case
+      const polyfill = new WebXRPolyfill(); // just in case
 
       SessionProvider.instance = new SessionProvider();
     }
@@ -36,7 +36,9 @@ export default class SessionProvider {
       optionalFeatures: ['dom-overlay'],
       domOverlay: { root: document.getElementById("react-ui") as HTMLDivElement },
     }).catch((err) => {
-      DebugLogger.getInstance().log(err);
+      DebugLogger.getInstance().log("error 1");
+      DebugLogger.getInstance().log(err.message);
+
       return false;
     }) as XRSession;
 
@@ -71,7 +73,6 @@ export default class SessionProvider {
     if (this.session) {
       this.session.end();
       this.session = null;
-      console.log('AR Session ended');
     }
   }
 }

@@ -3,16 +3,16 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import ThreeRenderer from "./ThreeRenderer";
 import DebugLogger from "../components/DebugLogger";
 
+
 export class ModelRenderer {
   private static instance: ModelRenderer;
 
+  private test: boolean = false;
   private loader: GLTFLoader;
   private model: THREE.Object3D | null = null;
   private mixer: THREE.AnimationMixer | null = null;
-  private action: THREE.AnimationAction | null = null;
-  private clock: THREE.Clock | null = null;
-  private fixedPosition: THREE.Vector3 | null = null;
-  private fixedRotation: THREE.Quaternion | null = null;
+  private actions: THREE.AnimationAction[] = [];
+  private anchor: XRAnchor | null = null;
 
   private constructor() {
     this.loader = new GLTFLoader();
@@ -24,55 +24,146 @@ export class ModelRenderer {
     return ModelRenderer.instance;
   }
 
+  public getModel(): THREE.Object3D | null {
+    return this.model;
+  }
+
   public loadModel(modelUrl: string): void {
+    DebugLogger.getInstance().log(`Start to load mode: ${modelUrl}`)
+    if (this.test) {
+      this.loader.load(
+        "/src/assets/cube.glb",
+        (gltf) => {
+          this.model = gltf.scene as THREE.Group;
+          this.model.visible = false;
+          this.scaleModel();
+
+          ThreeRenderer.getInstance().addModel(this.model);
+          DebugLogger.getInstance().log("The model has been successfully loaded.")
+
+          if (gltf.animations.length > 0) {
+            this.mixer = new THREE.AnimationMixer(this.model) as THREE.AnimationMixer;
+
+            gltf.animations.forEach((clip) => {
+              if (!this.mixer) return;
+              const action = this.mixer.clipAction(clip);
+              this.actions.push(action); // Action 저장
+            });
+          }
+        },
+        undefined,
+        (err) => DebugLogger.getInstance().log("Failed to load model")
+      );
+      return;
+    }
+
+
     this.loader.load(
       modelUrl,
       (gltf) => {
-        this.model = gltf.scene as THREE.Object3D;
-        this.model.visible = false; // 초기에는 감지 위치에서만 표시되도록 숨김
-        this.model.scale.set(0.5, 0.5, 0.5); // 필요에 따라 모델 크기 조정
+        this.model = gltf.scene as THREE.Group;
+        this.model.visible = false;
+        this.scaleModel();
+
         ThreeRenderer.getInstance().addModel(this.model);
+        DebugLogger.getInstance().log("The model has been successfully loaded.")
 
         if (gltf.animations.length > 0) {
-          this.mixer = new THREE.AnimationMixer(this.model);
-          this.action = this.mixer.clipAction(gltf.animations[0]); // 첫 번째 애니메이션 선택
-          this.action.play(); // 처음에 한번 플레이해서 확인
-          this.action.stop(); // 대기 상태
+          this.mixer = new THREE.AnimationMixer(this.model) as THREE.AnimationMixer;
+
+          gltf.animations.forEach((clip) => {
+            if (!this.mixer) return;
+            const action = this.mixer.clipAction(clip);
+            this.actions.push(action); // Action 저장
+          });
         }
       },
       undefined,
-      (err) => DebugLogger.getInstance().log(err)
+      (err) => DebugLogger.getInstance().log("Failed to load model")
     );
   }
 
-  // 위치와 회전을 고정하기 위해 호출
-  public fixModelPosition(position: THREE.Vector3, rotation: THREE.Quaternion): void {
-    this.fixedPosition = position.clone();
-    this.fixedRotation = rotation.clone();
-    this.updateModelPosition(); // 고정 위치로 모델 업데이트
+  public scaleModel(): void {
+    if (this.model) {
+      const boundingBox = new THREE.Box3().setFromObject(this.model);
+      const boundingSphere = new THREE.Sphere();
+      boundingBox.getBoundingSphere(boundingSphere);
+      const scale = 0.2 / boundingSphere.radius;
+      this.model.scale.set(scale, scale, scale);
+
+      DebugLogger.getInstance().log("The model has been scaled");
+    }
   }
 
-  // 고정 위치에 모델을 렌더링
-  public updateModelPosition(): void {
-    if (this.model && this.fixedPosition && this.fixedRotation) {
-      this.model.position.copy(this.fixedPosition);
-      this.model.setRotationFromQuaternion(this.fixedRotation);
+  public connectAnchor(anchor: XRAnchor): void {
+    if (this.model && !this.anchor) {
+      this.anchor = anchor;
+      this.model.visible = true;
+      DebugLogger.getInstance().log("Anchor has connected with the model")
+    }
+  }
+
+  public isLocated(): boolean {
+    return this.model?.visible ?? false;
+  }
+
+  public locate(position: THREE.Vector3, orientation: THREE.Quaternion): void {
+    if (this.model) {
+      this.updatePos(position);
+      this.updateRot(orientation);
       this.model.visible = true;
     }
   }
 
-  // 애니메이션을 처음부터 실행
+  public disloacte(): void {
+    if (this.model) {
+      this.model.visible = false;
+    }
+  }
+
+  private updatePos(position: THREE.Vector3): void {
+    if (this.model) {
+      this.model.position.copy(position);
+    }
+  }
+
+  private updateRot(orientation: THREE.Quaternion): void {
+    if (this.model) {
+      this.model.setRotationFromQuaternion(orientation);
+    }
+  }
+
+  /* TODO: Remove unnecessary methods later */
   public playAnimation(): void {
-    if (this.action) {
-      this.action.reset(); // 처음으로 이동
-      this.action.play(); // 애니메이션 재생
+    if (this.actions) {
+      DebugLogger.getInstance().log("Start animation");
+      this.actions.forEach(action => {
+        if (action.paused) action.paused = false;
+        else action.play(); // at first, paused value is false
+      });
+    }
+  }
+  public stopAnimation(): void {
+    if (this.actions) {
+      DebugLogger.getInstance().log("Stop animation");
+      this.actions.forEach(action => action.stop());
+    }
+  }
+  public pauseAnimation(): void {
+    if (this.actions) {
+      DebugLogger.getInstance().log("Pause animation");
+      this.actions.forEach(action => action.paused = true);
     }
   }
 
   // 매 프레임마다 호출하여 애니메이션 업데이트
-  public update(): void {
-    if (this.mixer && this.clock) {
-      this.mixer.update(this.clock.getDelta());
+  public update(deltaTime: number): void {
+    if (this.mixer) {
+      this.mixer.update(deltaTime)
     }
+
+    // if (this.mixer && this.clock) {
+    //   this.mixer.update(this.clock.getDelta());
+    // }
   }
 }
