@@ -22,6 +22,8 @@ button {
   border-radius: 8px;
   border: 1px solid lightgray;
   background-color: white;
+  padding: 0;
+  margin: 0;
 
   font-family: "Geist Mono", monospace;
   font-weight: 500;

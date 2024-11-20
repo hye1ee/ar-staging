@@ -2,22 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import {
-  House,
-  Bug,
+  // House,
+  // Bug,
   Box,
   Move,
   CirclePlay,
   CirclePause,
   CircleStop,
+  Film,
 } from "lucide-react";
 
-import SessionProvider from "../webxr/SessionProvider";
-import ThreeRenderer, { RenderMode, ModelMode } from "../webxr/ThreeRenderer";
-import { ModelRenderer } from "../webxr/ModelRenderer";
-
-import DebugLogger from "../components/DebugLogger";
-import AlertLogger from "../components/AlertLogger";
-import PerformanceLogger from "../components/PerformanceLogger";
+import ActionManger from "../webxr/ActionManager";
+import { ModelMode, RenderMode } from "../webxr/types";
 
 export default function Session() {
   const [renderMode, setRenderMode] = useState<RenderMode>("hit");
@@ -26,46 +22,29 @@ export default function Session() {
   const navigate = useNavigate();
 
   const switchRenderMode = (mode: RenderMode) => {
+    ActionManger.getInstance().switchRenderMode(mode);
     setRenderMode(mode);
-    ThreeRenderer.getInstance().switchRenderMode(mode);
     if (modelMode !== "stop") switchModelMode("stop"); // init the model mode
-    AlertLogger.getInstance().alert(`Render mode has changed to ${mode}`);
   };
 
   const switchModelMode = (mode: ModelMode) => {
+    ActionManger.getInstance().switchModelMode(mode);
     setModelMode(mode);
-    ThreeRenderer.getInstance().switchModelMode(mode);
-    AlertLogger.getInstance().alert(`Animation mode has changed to ${mode}`);
   };
 
   useEffect(() => {
-    const startARSession = async () => {
-      if (!(await SessionProvider.getInstance().requestSession())) return false;
-      const session = SessionProvider.getInstance().getSession();
-      if (!session) return false;
-
-      ThreeRenderer.getInstance().appendToDOM(
-        document.getElementById("webgl-container") as HTMLDivElement
-      );
-      ThreeRenderer.getInstance().connectSession(session);
-      ThreeRenderer.getInstance().startRendering();
-
-      return true;
+    const asyncWrapper = async () => {
+      return ActionManger.getInstance().startSession();
     };
-    if (!startARSession()) navigate("/");
-
-    // !important
-    ThreeRenderer.getInstance().addRenderCallback(
-      PerformanceLogger.getInstance().updateStats.bind(
-        PerformanceLogger.getInstance()
-      )
-    );
-    DebugLogger.getInstance().init();
-    ModelRenderer.getInstance().loadModel("src/assets/bunny.glb");
+    if (!asyncWrapper()) navigate("/");
+    ActionManger.getInstance().startLogger();
+    ActionManger.getInstance().startRendering();
   }, []);
 
   const toMainPage = () => {
-    SessionProvider.getInstance().endSession();
+    ActionManger.getInstance().endSession();
+    ActionManger.getInstance().endRendering();
+    ActionManger.getInstance().endLogger();
     navigate("/");
   };
 
@@ -77,10 +56,13 @@ export default function Session() {
         onClick={toMainPage}
         style={{ position: "absolute", top: "15px", left: "15px" }}
       >
-        <House />
+        <img
+          src="/public/icons/icon512.png"
+          style={{ width: "100%", objectFit: "cover" }}
+        />
       </IconButton>
 
-      <IconButton
+      {/* <IconButton
         onClick={() => {
           DebugLogger.getInstance().toggleVisibility();
         }}
@@ -88,7 +70,7 @@ export default function Session() {
       >
         <Bug />
         <DebugLoggingContainer id="debug-log" />
-      </IconButton>
+      </IconButton> */}
       <ToolBar
         style={{
           position: "absolute",
@@ -103,7 +85,7 @@ export default function Session() {
             backgroundColor: renderMode === "hit" ? "#FF0C81" : "black",
           }}
         >
-          <Move size={40} color={renderMode === "hit" ? "white" : "gray"} />
+          <Move size={24} color={renderMode === "hit" ? "white" : "gray"} />
         </IconButton>
         <IconButton
           onClick={() => switchRenderMode("anchor")}
@@ -111,19 +93,25 @@ export default function Session() {
             backgroundColor: renderMode === "anchor" ? "#FF0C81" : "black",
           }}
         >
-          <Box size={40} color={renderMode === "anchor" ? "white" : "gray"} />
+          <Box size={24} color={renderMode === "anchor" ? "white" : "gray"} />
         </IconButton>
-        {/* <IconButton onClick={toMainPage}>
-          <Play color="#FF0C81" />
-        </IconButton> */}
+        <IconButton
+          onClick={() => switchRenderMode("film")}
+          style={{
+            backgroundColor: renderMode === "film" ? "#FF0C81" : "black",
+          }}
+        >
+          <Film size={24} color={renderMode === "film" ? "white" : "gray"} />
+        </IconButton>
       </ToolBar>
 
       <ToolBar
         style={{
+          flexDirection: "row",
           position: "absolute",
-          top: "50%",
-          right: "15px",
-          transform: "translate(0, -50%)",
+          bottom: "15px",
+          left: "50%",
+          transform: "translate(-50%, 0)",
         }}
       >
         <IconButton
@@ -133,7 +121,7 @@ export default function Session() {
           }}
         >
           <CirclePlay
-            size={40}
+            size={24}
             color={modelMode === "play" ? "white" : "gray"}
           />
         </IconButton>
@@ -144,7 +132,7 @@ export default function Session() {
           }}
         >
           <CirclePause
-            size={40}
+            size={24}
             color={modelMode === "pause" ? "white" : "gray"}
           />
         </IconButton>
@@ -155,7 +143,7 @@ export default function Session() {
           }}
         >
           <CircleStop
-            size={40}
+            size={24}
             color={modelMode === "stop" ? "white" : "gray"}
           />
         </IconButton>
@@ -181,6 +169,8 @@ const IconButton = styled.button`
 
   background-color: transparent;
   border: none;
+
+  box-sizing: border-box;
 `;
 
 const PerformanceLoggerContainer = styled.div`
@@ -188,7 +178,7 @@ const PerformanceLoggerContainer = styled.div`
   height: fit-content;
 
   position: absolute;
-  left: 15px;
+  right: 15px;
   top: 15px;
 `;
 
@@ -214,23 +204,23 @@ const AlertLoggerContainer = styled.div`
   transition: all 0.2s ease;
 `;
 
-const DebugLoggingContainer = styled.div`
-  width: 300px;
-  height: 150px;
+// const DebugLoggingContainer = styled.div`
+//   width: 300px;
+//   height: 150px;
 
-  box-sizing: border-box;
-  padding: 10px;
+//   box-sizing: border-box;
+//   padding: 10px;
 
-  position: absolute;
-  top: 0px;
-  right: 50px;
-  border-radius: 8px;
+//   position: absolute;
+//   top: 0px;
+//   right: 50px;
+//   border-radius: 8px;
 
-  background-color: rgba(0, 0, 0, 0.3);
-  color: white;
-  opacity: 0;
-  overflow-y: auto;
-`;
+//   background-color: rgba(0, 0, 0, 0.3);
+//   color: white;
+//   opacity: 0;
+//   overflow-y: auto;
+// `;
 
 const ToolBar = styled.div`
   width: fit-content;

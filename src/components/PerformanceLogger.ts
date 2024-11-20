@@ -9,6 +9,7 @@ export default class PerformanceLogger {
     this.stats = new Stats();
     this.logElement = document.getElementById("perform-log") as HTMLDivElement;
     this.logElement.append(this.stats.dom);
+    this.stats.dom.style.position = "relative"
   }
 
   // Singleton instance getter

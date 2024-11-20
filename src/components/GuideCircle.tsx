@@ -26,6 +26,7 @@ export default class GuideCircle {
 
     this.model = new THREE.Group();
     this.model.add(guide1, guide2, guide3);
+    this.model.name = "ar-staging/guidecircle";
 
     this.model.visible = false;
   }
