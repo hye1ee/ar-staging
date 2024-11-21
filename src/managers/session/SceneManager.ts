@@ -1,12 +1,11 @@
 import * as THREE from 'three';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
-import DebugLogger from '../components/DebugLogger';
-import { ModelLoader } from './ModelLoader';
-import GuideCircle from '../components/GuideCircle';
-import { HDRI_URL } from './utils';
-import { RenderProps } from './types';
-import { ModelAnimator } from './ModelAnimator';
+import { debugLogger, guideCircle } from '@/components';
+import { modelLoader, modelAnimator } from '@/managers';
+
+import { HDRI_URL } from '@/utils';
+import { RenderProps } from '@/managers/types';
 
 export default class SceneManager {
   private static instance: SceneManager;
@@ -21,12 +20,15 @@ export default class SceneManager {
     this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 1000);
 
     // Add guidecircle and testcube
-    this.scene.add(GuideCircle.getInstance().getModel());
-    ModelLoader.getInstance().loadTestCube().then((testCube) => {
-      ModelAnimator.getInstance().init(testCube);
+    this.scene.add(guideCircle.getModel());
+    modelLoader.loadTestCube().then((testCube) => {
+      modelAnimator.init(testCube.model);
       this.scene.add(testCube.model);
     });
-    DebugLogger.getInstance().log("Initialize scene")
+
+    this.scene.add(new THREE.AxesHelper(1));
+
+    debugLogger.log("Initialize scene");
   }
 
   public static getInstance(): SceneManager {
@@ -55,7 +57,7 @@ export default class SceneManager {
       // this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
       // this.renderer.toneMappingExposure = 1.0;
 
-      DebugLogger.getInstance().log("HDR environment map applied.");
+      debugLogger.log("HDR environment map applied.");
     });
   }
 
@@ -77,11 +79,15 @@ export default class SceneManager {
   */
   // public loadUserModel(url: string) {
   //   this.removeUserModel();
-  //   ModelLoader.getInstance().loadUserModel(url).then((model) => this.addChildren(model));
+  //   modelLoader.loadUserModel(url).then((model) => this.addChildren(model));
   // }
 
   public getUserModel(): THREE.Object3D | null {
     return this.scene.getObjectByName("ar-staging/scene") ?? null;
+  }
+
+  public getCube(): THREE.Object3D | null {
+    return this.scene.getObjectByName("ar-staging/testcube") ?? null;
   }
 
   public isUserModelExist(): boolean {

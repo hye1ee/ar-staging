@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { act, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import {
@@ -12,65 +12,107 @@ import {
   Film,
 } from "lucide-react";
 
-import ActionManger from "../webxr/ActionManager";
-import { ModelMode, RenderMode } from "../webxr/types";
+import { ModelMode, RenderMode } from "@/managers/types";
+import { actionManager } from "@/managers";
+import ModelSelector from "@/components/ModelSelector";
+import {
+  alertLogger,
+  debugLogger,
+  dimManager,
+  performanceLogger,
+} from "@/components";
 
 export default function Session() {
   const [renderMode, setRenderMode] = useState<RenderMode>("hit");
   const [modelMode, setModelMode] = useState<ModelMode>("stop");
+  const touch = useRef<number>();
 
   const navigate = useNavigate();
 
+  //---------------------------------
+  // switch mode via buttons
   const switchRenderMode = (mode: RenderMode) => {
-    ActionManger.getInstance().switchRenderMode(mode);
+    actionManager.switchRenderMode(mode);
     setRenderMode(mode);
     if (modelMode !== "stop") switchModelMode("stop"); // init the model mode
   };
 
   const switchModelMode = (mode: ModelMode) => {
-    ActionManger.getInstance().switchModelMode(mode);
+    actionManager.switchModelMode(mode);
     setModelMode(mode);
   };
 
-  useEffect(() => {
-    const asyncWrapper = async () => {
-      return ActionManger.getInstance().startSession();
-    };
-    if (!asyncWrapper()) navigate("/");
-    ActionManger.getInstance().startLogger();
-    ActionManger.getInstance().startRendering();
-  }, []);
-
-  const toMainPage = () => {
-    ActionManger.getInstance().endSession();
-    ActionManger.getInstance().endRendering();
-    ActionManger.getInstance().endLogger();
+  //---------------------------------
+  // onClick event handlers
+  const onMainClick = () => {
+    actionManager.endSession();
+    actionManager.endRendering();
+    actionManager.endLogger();
     navigate("/");
   };
 
+  const onModelClick = (model: "testcube" | string) => {
+    if (model === "testcube") actionManager.loadCube();
+    else actionManager.loadModel(model);
+  };
+
+  window.addEventListener("pointerdown", (e: PointerEvent) => {
+    if (renderMode === "anchor") {
+      touch.current = e.clientX;
+      window.addEventListener("pointermove", onPointerMove);
+    }
+  });
+
+  const onPointerMove = (e: PointerEvent) => {
+    if (touch.current) {
+      const delta = e.clientX - touch.current;
+      actionManager.rotateWorld(delta);
+      touch.current = e.clientX;
+    }
+  };
+
+  window.addEventListener("pointerup", () => {
+    if (renderMode === "anchor") {
+      touch.current = undefined;
+      window.removeEventListener("pointermove", onPointerMove);
+    }
+  });
+
+  //---------------------------------
+
+  useEffect(() => {
+    const asyncWrapper = async () => {
+      return actionManager.startSession();
+    };
+    if (!asyncWrapper()) navigate("/");
+
+    // initialize managers which need to be connected with react elements
+    dimManager.init();
+    performanceLogger.init();
+    alertLogger.init();
+    debugLogger.init();
+
+    // start the main session
+    actionManager.startLogger();
+    actionManager.startRendering();
+  }, []);
+
   return (
     <PageWrapper>
+      <Dim id="dim" />
       <PerformanceLoggerContainer id="perform-log" />
       <AlertLoggerContainer id="alert-log" />
       <IconButton
-        onClick={toMainPage}
+        onClick={onMainClick}
         style={{ position: "absolute", top: "15px", left: "15px" }}
       >
         <img
-          src="/public/icons/icon512.png"
+          src="/icons/icon512.png"
           style={{ width: "100%", objectFit: "cover" }}
         />
       </IconButton>
+      <ModelSelector disabled={renderMode !== "hit"} onClick={onModelClick} />
 
-      {/* <IconButton
-        onClick={() => {
-          DebugLogger.getInstance().toggleVisibility();
-        }}
-        style={{ position: "absolute", top: "15px", right: "15px" }}
-      >
-        <Bug />
-        <DebugLoggingContainer id="debug-log" />
-      </IconButton> */}
       <ToolBar
         style={{
           position: "absolute",
@@ -159,6 +201,15 @@ const PageWrapper = styled.div`
   position: relative;
 `;
 
+const Dim = styled.div`
+  width: 100%;
+  height: 100%;
+
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 9;
+`;
+
 const IconButton = styled.button`
   width: 40px;
   height: 40px;
@@ -184,7 +235,7 @@ const PerformanceLoggerContainer = styled.div`
 
 const AlertLoggerContainer = styled.div`
   width: fit-content;
-  height: fit-content;
+  height: 40px;
 
   box-sizing: border-box;
   padding: 8px 16px;
@@ -197,10 +248,15 @@ const AlertLoggerContainer = styled.div`
 
   font-size: 13px;
 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   background-color: black;
   color: white;
   opacity: 0;
 
+  z-index: 99;
   transition: all 0.2s ease;
 `;
 

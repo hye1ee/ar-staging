@@ -1,11 +1,12 @@
 import * as THREE from "three";
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import DebugLogger from "../components/DebugLogger";
-import { scaleModel, TEST_CUBE_URL } from "./utils";
-import { UserModel } from "./types";
+import DebugLogger from "@/components/DebugLogger";
+import { scaleModel, TEST_CUBE_URL } from "@/utils";
+import { UserModel } from "@/managers/types";
+import { alertLogger, dimManager } from "@/components";
 
 
-export class ModelLoader {
+export default class ModelLoader {
   private static instance: ModelLoader;
 
   private loader: GLTFLoader;
@@ -54,6 +55,9 @@ export class ModelLoader {
   }
 
   public loadUserModel(modelUrl: string): Promise<UserModel> {
+    dimManager.show();
+    alertLogger.startManualAlert(`${modelUrl} is now loading...`)
+
     return new Promise((res, rej) => {
       this.loader.load(
         modelUrl,
@@ -75,12 +79,17 @@ export class ModelLoader {
             });
           }
           DebugLogger.getInstance().log(`Success to load model :${model.name}`);
+          dimManager.hide();
+          alertLogger.endManualAlert();
           res({ model, mixer, actions });
         },
         undefined,
         () => {
           rej();
           DebugLogger.getInstance().log("Failed to load model");
+          dimManager.hide();
+          alertLogger.endManualAlert();
+          alertLogger.alert(`Failed to load ${modelUrl}`);
         }
       );
     })

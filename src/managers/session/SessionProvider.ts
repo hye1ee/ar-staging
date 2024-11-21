@@ -1,5 +1,6 @@
 // import WebXRPolyfill from 'webxr-polyfill';
-import DebugLogger from '../components/DebugLogger';
+
+import { debugLogger } from "@/components";
 
 export default class SessionProvider {
   private static instance: SessionProvider;
@@ -36,14 +37,14 @@ export default class SessionProvider {
       optionalFeatures: ['dom-overlay'],
       domOverlay: { root: document.getElementById("react-ui") as HTMLDivElement },
     }).catch((err) => {
-      DebugLogger.getInstance().log("error 1");
-      DebugLogger.getInstance().log(err.message);
+      debugLogger.log("error 1");
+      debugLogger.log(err.message);
 
       return false;
     }) as XRSession;
 
     const viewerSpace = await this.session.requestReferenceSpace("viewer").catch((err) => {
-      DebugLogger.getInstance().log(err);
+      debugLogger.log(err);
       return false;
     }) as XRReferenceSpace;
 

@@ -1,11 +1,10 @@
 import * as THREE from 'three';
-import SessionProvider from './SessionProvider';
-import DebugLogger from '../components/DebugLogger';
-import GuideCircle from '../components/GuideCircle';
-import { getTranformProps } from './utils';
-import AlertLogger from '../components/AlertLogger';
-import { ModelAnimator } from './ModelAnimator';
-import { RenderMode, RenderProps } from './types';
+import { sessionProvider } from '@/managers';
+
+import { getTranformProps } from '@/utils';
+import { RenderMode, RenderProps } from '@/managers/types';
+import { alertLogger, debugLogger, guideCircle } from '@/components';
+import { modelAnimator } from '..';
 
 export default class ThreeRenderer {
   private static instance: ThreeRenderer;
@@ -40,7 +39,7 @@ export default class ThreeRenderer {
   }
   public connectSession(session: XRSession): void {
     this.renderer.xr.setSession(session);
-    DebugLogger.getInstance().log("Session connected.");
+    debugLogger.log("Session connected.");
   }
   public addRenderCallback(callback: () => void): void {
     this.renderCallback.push(callback);
@@ -56,8 +55,8 @@ export default class ThreeRenderer {
         this.renderCallback.forEach((callback) => callback());
       }
     });
-    DebugLogger.getInstance().log("Start rendering loop.");
-    AlertLogger.getInstance().alert("Start Rendering")
+    debugLogger.log("Start rendering loop.");
+    alertLogger.alert("Start Rendering")
   }
 
 
@@ -69,11 +68,11 @@ export default class ThreeRenderer {
     this.renderMode = mode;
 
     if (this.renderMode === "hit") { // anchor -> hit
-      ModelAnimator.getInstance().dislocateModel();
-      DebugLogger.getInstance().log("Mode change: hit");
+      modelAnimator.dislocateModel();
+      debugLogger.log("Mode change: hit");
     } else if (this.renderMode === "anchor") { // hit -> anchor
-      GuideCircle.getInstance().hideGuide();
-      DebugLogger.getInstance().log("Mode change: anchor");
+      guideCircle.hideGuide();
+      debugLogger.log("Mode change: anchor");
     }
   }
 
@@ -87,19 +86,19 @@ export default class ThreeRenderer {
     const hitPose = this.getHitPose(frame);
     if (hitPose) { /* Update and show guide, only when the hit test successed */
       const { position, orientation } = getTranformProps(hitPose.transform);
-      GuideCircle.getInstance().updatePos(position);
-      GuideCircle.getInstance().updateRot(orientation);
-      GuideCircle.getInstance().showGuide();
+      guideCircle.updatePos(position);
+      guideCircle.updateRot(orientation);
+      guideCircle.showGuide();
       return;
     }
     /* When hit test failed, hide guide */
-    GuideCircle.getInstance().hideGuide();
+    guideCircle.hideGuide();
   }
 
   /* Run hit test and return result */
   public getHitPose(frame: XRFrame): XRPose | null {
-    const session = SessionProvider.getInstance().getSession();
-    const hitTestSource = SessionProvider.getInstance().getHitTestSource();
+    const session = sessionProvider.getSession();
+    const hitTestSource = sessionProvider.getHitTestSource();
     if (!session || !hitTestSource) return null;
 
     const hitTestResults = frame.getHitTestResults(hitTestSource);
@@ -109,13 +108,40 @@ export default class ThreeRenderer {
 
   /* If anchor exist, update model */
   public anchorLoop(frame: XRFrame, time: number): void {
-    if (ModelAnimator.getInstance().isModelLocated()) {
+    if (!modelAnimator.isModelLocated()) {
       const hitPose = this.getHitPose(frame);
       if (!hitPose) return;
-      ModelAnimator.getInstance().locateModel(hitPose.transform);
+
+      // move the world origin
+      const offsetTransform = new XRRigidTransform(hitPose.transform.position, hitPose.transform.orientation);
+      const newReferenceSpace = this.renderer.xr.getReferenceSpace()?.getOffsetReferenceSpace(offsetTransform);
+      if (newReferenceSpace) this.renderer.xr.setReferenceSpace(newReferenceSpace);
+
+      // and then locate model to the origin
+
+      setTimeout(() => {
+        modelAnimator.locateModel(hitPose.transform);
+      }, 100)
     }
     /* Animation loop */
-    ModelAnimator.getInstance().update((time - this.prevTime) / 1000);
+    modelAnimator.update((time - this.prevTime) / 1000);
     this.prevTime = time;
+  }
+
+  public rotateSession(delta: number): void {
+    const rotationQuaternion = new THREE.Quaternion();
+    rotationQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), delta);
+    const offsetTransform = new XRRigidTransform(
+      { x: 0, y: 0, z: 0 },
+      {
+        x: rotationQuaternion.x,
+        y: rotationQuaternion.y,
+        z: rotationQuaternion.z,
+        w: rotationQuaternion.w,
+      }
+    );
+
+    const newReferenceSpace = this.renderer.xr.getReferenceSpace()?.getOffsetReferenceSpace(offsetTransform);
+    if (newReferenceSpace) this.renderer.xr.setReferenceSpace(newReferenceSpace);
   }
 }

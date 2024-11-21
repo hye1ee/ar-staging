@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom"; // Assuming you're using react-router for navigation
-import SessionProvider from "../webxr/SessionProvider";
+import { sessionProvider } from "@/managers";
 import styled from "styled-components";
 
 export default function Main() {
@@ -18,7 +18,7 @@ export default function Main() {
   const isSessionValid = async () => {
     setValid(undefined);
     setMsg("Checking availability...");
-    setValid(await SessionProvider.getInstance().isSessionAvailable());
+    setValid(await sessionProvider.isSessionAvailable());
   };
 
   const toSessionPage = () => {

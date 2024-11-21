@@ -1,8 +1,10 @@
 export default class DebugLogger {
   private static instance: DebugLogger;
-  private logElement: HTMLElement;
+  private logElement: HTMLElement | null = null;
 
   private constructor() {
+  }
+  public init() {
     this.logElement = document.getElementById("debug-log") as HTMLDivElement ?? null;
   }
 
@@ -16,7 +18,9 @@ export default class DebugLogger {
 
   // 메시지를 HTML 요소에 출력
   public log(message: any): void {
-    console.log(message);
+    console.log(message)
+    if (!this.logElement) this.init();
+
     const formattedMessage =
       typeof message === "object" ? `${JSON.stringify(message)}` : message;
 
@@ -28,16 +32,19 @@ export default class DebugLogger {
 
   // 화면에 표시된 로그 초기화
   public clear(): void {
+    if (!this.logElement) this.init();
+    if (!this.logElement) return;
+
     this.logElement.innerText = "";
   }
 
   public toggleVisibility(): void {
+    if (!this.logElement) this.init();
+    if (!this.logElement) return;
+
     if (this.logElement.style.opacity === "1")
       this.logElement.style.opacity = "0";
     else this.logElement.style.opacity = "1";
   }
 
-  public init() {
-    this.logElement = document.getElementById("debug-log") as HTMLDivElement;
-  }
 }

@@ -28,10 +28,12 @@ export const scaleModel = (model: THREE.Object3D): void => {
   model.scale.set(scale, scale, scale);
 }
 
-export const locateModel = (model: THREE.Object3D, transform: XRRigidTransform) => {
-  const { position, orientation } = getTranformProps(transform);
-  updateModelPosition(model, position);
-  updateModelRotation(model, orientation);
+export const locateModel = (model: THREE.Object3D, _transform: XRRigidTransform) => {
+  // const { position, orientation } = getTranformProps(transform);
+  updateModelPosition(model, new THREE.Vector3(0, 0, 0));
+  // updateModelPosition(model, position);
+
+  // updateModelRotation(model, orientation);
   model.visible = true;
 }
 

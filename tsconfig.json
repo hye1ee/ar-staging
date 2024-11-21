@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    "baseUrl": ".", // root
+    "paths": {
+      "@/*": ["src/*"] // map "@" to "src"
+    },
     "jsx": "react",
     "target": "ES2020",
     "useDefineForClassFields": true,

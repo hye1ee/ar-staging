@@ -1,15 +1,15 @@
 import * as THREE from "three";
-import DebugLogger from "../components/DebugLogger";
-import { ModelMode, UserModel } from "./types";
-import { dislocateModel, isModelLocated, locateModel } from "./utils";
+import DebugLogger from "@/components/DebugLogger";
+import { ModelMode, UserModel } from "@/managers/types";
+import { dislocateModel, isModelLocated, locateModel } from "@/utils";
 
 
-export class ModelAnimator {
+export default class ModelAnimator {
   private static instance: ModelAnimator;
 
   private model: THREE.Object3D | null = null;
   private mixer: THREE.AnimationMixer | null = null;
-  private actions: THREE.AnimationAction[] = [];
+  private actions: THREE.AnimationAction[] | null = null;
 
   private modelMode: ModelMode = "stop";
 
@@ -21,11 +21,18 @@ export class ModelAnimator {
     return ModelAnimator.instance;
   }
 
-  public init(model: UserModel) {
-    DebugLogger.getInstance().log(`Init model animator with the model: ${model.model.name}`);
-    this.model = model.model;
-    this.mixer = model.mixer;
-    this.actions = model.actions;
+  public init(model: UserModel | THREE.Object3D) {
+    if (model instanceof THREE.Object3D) {
+      this.model = model;
+      this.mixer = null;
+      this.actions = null;
+    } else {
+      DebugLogger.getInstance().log(`Init model animator with the model: ${model.model.name}`);
+      this.model = model.model;
+      this.mixer = model.mixer;
+      this.actions = model.actions;
+    }
+    if (this.model) this.model.visible = false;
   }
 
   public getModelMode(): ModelMode {
