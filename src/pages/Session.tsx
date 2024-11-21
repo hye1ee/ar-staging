@@ -147,49 +147,51 @@ export default function Session() {
         </IconButton>
       </ToolBar>
 
-      <ToolBar
-        style={{
-          flexDirection: "row",
-          position: "absolute",
-          bottom: "15px",
-          left: "50%",
-          transform: "translate(-50%, 0)",
-        }}
-      >
-        <IconButton
-          onClick={() => switchModelMode("play")}
+      {renderMode === "film" && (
+        <ToolBar
           style={{
-            backgroundColor: modelMode === "play" ? "#FF0C81" : "black",
+            flexDirection: "row",
+            position: "absolute",
+            bottom: "15px",
+            left: "50%",
+            transform: "translate(-50%, 0)",
           }}
         >
-          <CirclePlay
-            size={24}
-            color={modelMode === "play" ? "white" : "gray"}
-          />
-        </IconButton>
-        <IconButton
-          onClick={() => switchModelMode("pause")}
-          style={{
-            backgroundColor: modelMode === "pause" ? "#FF0C81" : "black",
-          }}
-        >
-          <CirclePause
-            size={24}
-            color={modelMode === "pause" ? "white" : "gray"}
-          />
-        </IconButton>
-        <IconButton
-          onClick={() => switchModelMode("stop")}
-          style={{
-            backgroundColor: modelMode === "stop" ? "#FF0C81" : "black",
-          }}
-        >
-          <CircleStop
-            size={24}
-            color={modelMode === "stop" ? "white" : "gray"}
-          />
-        </IconButton>
-      </ToolBar>
+          <IconButton
+            onClick={() => switchModelMode("play")}
+            style={{
+              backgroundColor: modelMode === "play" ? "#FF0C81" : "black",
+            }}
+          >
+            <CirclePlay
+              size={24}
+              color={modelMode === "play" ? "white" : "gray"}
+            />
+          </IconButton>
+          <IconButton
+            onClick={() => switchModelMode("pause")}
+            style={{
+              backgroundColor: modelMode === "pause" ? "#FF0C81" : "black",
+            }}
+          >
+            <CirclePause
+              size={24}
+              color={modelMode === "pause" ? "white" : "gray"}
+            />
+          </IconButton>
+          <IconButton
+            onClick={() => switchModelMode("stop")}
+            style={{
+              backgroundColor: modelMode === "stop" ? "#FF0C81" : "black",
+            }}
+          >
+            <CircleStop
+              size={24}
+              color={modelMode === "stop" ? "white" : "gray"}
+            />
+          </IconButton>
+        </ToolBar>
+      )}
     </PageWrapper>
   );
 }

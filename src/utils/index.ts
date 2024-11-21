@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 // constant
-export const TEST_CUBE_URL = "/src/assets/cube.glb"
-export const HDRI_URL = "/src/assets/studio.hdr";
+export const TEST_CUBE_URL = "/models/cube.glb"
+export const HDRI_URL = "/models/studio.hdr";
 
 
 
