@@ -27,6 +27,9 @@ export default function Session() {
   const [modelMode, setModelMode] = useState<ModelMode>("stop");
   const touch = useRef<number>();
 
+  const [wsUrl, setWsUrl] = useState<string>("");
+  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+
   const navigate = useNavigate();
 
   //---------------------------------
@@ -113,6 +116,30 @@ export default function Session() {
       </IconButton>
       <ModelSelector disabled={renderMode !== "hit"} onClick={onModelClick} />
 
+      <div style={{position: "absolute", top: "60px", left: "15px"}}>
+        <input type="text" id="ws-url" onChange={(event) => {setWsUrl(event.target.value)}} />
+        <button type="submit" onClick={() => {
+          if (wsUrl !== "") {
+            const ws = new WebSocket("ws://" + wsUrl);
+            console.log("Connecting to " + wsUrl);
+            ws.onopen = () => {
+              console.log("Connected to " + wsUrl);
+              setWebsocket(ws);
+            }
+            ws.onmessage = (event) => {
+              console.log(event.data);
+              actionManager.loadModel(event.data);
+            }
+            ws.onerror = (error) => {
+              console.error(error);
+            }
+            ws.onclose = () => {
+              console.log("Disconnected from " + wsUrl);
+              setWebsocket(null);
+            }
+          }
+        }}>Connect</button>
+      </div>
       <ToolBar
         style={{
           position: "absolute",
