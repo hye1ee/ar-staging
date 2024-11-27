@@ -18,7 +18,7 @@ Blender does not use the same Python environment as your system. You need to ins
 
 1. First, find your Blender's Python executable. You can find this in the Blender console when you open Blender. It should be something like `/Applications/Blender.app/Contents/Resources/2.93/python/bin/python3.9`. Mine was `/Applications/Blender/Contents/Resources/4.2/python/bin/python3.11`
 
-2. Create a temporary directory anywhere `mkdir tmp` and go into it `cd tmp`. This is where you will install the required packages.
+2. Great! Before we use it, reate a temporary directory anywhere on your device with: `mkdir tmp` and go into it `cd tmp`. This is where you will install the required packages.
 
 3. Create a virtual environment `python -m venv myenv`
 
