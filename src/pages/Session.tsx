@@ -137,8 +137,17 @@ export default function Session() {
               console.log("Disconnected from " + wsUrl);
               setWebsocket(null);
             }
+            setWebsocket(ws);
           }
         }}>Connect</button>
+        <button type="submit" disabled={websocket !== null} onClick={() => {
+          if (websocket) {
+            websocket.close();
+          } else {
+            console.error("No websocket connection to disconnect");
+          }
+        }
+        }>Disconnect</button>
       </div>
       <ToolBar
         style={{
