@@ -145,8 +145,8 @@ export default function Session() {
                 setWebsocket(ws);
               };
               ws.onmessage = (event) => {
-                console.log(event.data);
-                actionManager.loadModel(event.data);
+                console.log("msg", event.data);
+                // actionManager.loadModel(event.data);
               };
               ws.onerror = (error) => {
                 console.error(error);

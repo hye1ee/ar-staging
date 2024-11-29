@@ -4,7 +4,23 @@ import * as THREE from 'three';
 export const TEST_CUBE_URL = "/models/cube.glb"
 export const HDRI_URL = "/models/studio.hdr";
 
+// socket utils
+export const isValidWsUrl = ({ ip, port }: { ip: string, port: string }) => {
+  const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$/;
+  const portNum = Number(port)
+  return ipv4Regex.test(ip) && Number.isInteger(portNum) && portNum >= 0 && portNum <= 65535;
+}
 
+export const downloadBlob = (file: Blob) => {
+  const link = document.createElement("a") as unknown as HTMLAnchorElement;
+  const url = URL.createObjectURL(file);
+  link.href = url;
+  link.download = "scene.glb";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 
 // user model utils

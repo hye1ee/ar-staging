@@ -20,6 +20,7 @@ bl_info = {
 }
 
 qr_image = None
+qr_link = None
 is_connected = False
 websocket_client = None
 server = None
@@ -39,10 +40,13 @@ def get_ip():
     return IP
 
 def generate_qr_code(ip, port):
+    global qr_link
     import qrcode
     img = qrcode.make(f"ws://{ip}:{port}")
     temp_path = os.path.join(bpy.app.tempdir, "qr_code.png")
     img.save(temp_path)
+    
+    qr_link = f"{ip}:{port}"
     return temp_path
 
 async def process_send_queue():
@@ -137,6 +141,7 @@ class WebSocketServer:
             self._running = False
 
 def send():
+    global is_connected
     if not is_connected:
         print("No client connected")
         return
@@ -222,6 +227,7 @@ class WebSocketModalOperator(bpy.types.Operator):
         context.window_manager.event_timer_remove(self._timer)
 
 class QRCodePanel(bpy.types.Panel):
+    global qr_link, is_connected
     bl_label = "WebSocket QR Code"
     bl_idname = "VIEW3D_PT_qr_code"
     bl_space_type = 'VIEW_3D'
@@ -231,7 +237,8 @@ class QRCodePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         wm = context.window_manager
-        if wm.ws_connected:
+        layout.operator("wm.close", text="Close")
+        if is_connected:
             layout.label(text="Connected")
             layout.operator("wm.send_scene", text="Send")
         else:
@@ -239,6 +246,7 @@ class QRCodePanel(bpy.types.Panel):
                 qr_image.preview_ensure()
                 icon_id = qr_image.preview.icon_id
                 layout.template_icon(icon_id, scale=6)
+                layout.label(text=qr_link)
             else:
                 layout.label(text="QR code not loaded")
 
@@ -248,6 +256,14 @@ class SendSceneOperator(bpy.types.Operator):
 
     def execute(self, context):
         send()
+        return {'FINISHED'}
+
+class CloseOperator(bpy.types.Operator):
+    bl_idname = "wm.close"
+    bl_label = "Close Socket Session"
+
+    def execute(self, context):
+        unregister()
         return {'FINISHED'}
 
 websocket_server = WebSocketServer()
@@ -275,11 +291,12 @@ def register():
     bpy.utils.register_class(QRCodePanel)
     bpy.utils.register_class(WebSocketModalOperator)
     bpy.utils.register_class(SendSceneOperator)
+    bpy.utils.register_class(CloseOperator)
     
     bpy.ops.wm.websocket_modal_operator()
 
 def unregister():
-    global qr_image
+    global qr_image, qr_link
     websocket_server.stop()
     
     bpy.utils.unregister_class(QRCodePanel)
@@ -291,6 +308,7 @@ def unregister():
     if qr_image:
         bpy.data.images.remove(qr_image)
         qr_image = None
+        qr_link = None
 
 if __name__ == "__main__":
     print("Running Script!")

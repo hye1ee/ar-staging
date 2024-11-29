@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom"; // Assuming you're using react-router for navigation
-import { sessionProvider } from "@/managers";
+import { indexedDbManager, sessionProvider } from "@/managers";
 import styled from "styled-components";
+import { downloadBlob, isValidWsUrl } from "@/utils";
 
 export default function Main() {
   const [valid, setValid] = useState<boolean>();
   const [msg, setMsg] = useState("");
   const navigate = useNavigate();
+
+  const [wsUrl, setWsUrl] = useState<{ ip: string; port: string }>({
+    ip: "192.168.0.210",
+    port: "8765",
+  });
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [file, setFile] = useState<Blob | null>(null);
 
   useEffect(() => {
     if (valid == undefined) return;
@@ -33,6 +41,72 @@ export default function Main() {
       <Button disabled={!valid} onClick={toSessionPage}>
         Enter to the AR
       </Button>
+      <input
+        placeholder="ip"
+        value={wsUrl.ip}
+        onChange={(e) => setWsUrl((prev) => ({ ...prev, ip: e.target.value }))}
+      />
+      <input
+        placeholder="port"
+        value={wsUrl.port}
+        onChange={(e) =>
+          setWsUrl((prev) => ({ ...prev, port: e.target.value }))
+        }
+      />
+      <div>{`wsurl: ws://${wsUrl.ip}:${wsUrl.port}`}</div>
+      <button
+        type="submit"
+        disabled={!isValidWsUrl(wsUrl)}
+        onClick={() => {
+          const ws = new WebSocket(`ws://${wsUrl.ip}:${wsUrl.port}`);
+          console.log("socket", ws);
+
+          ws.onopen = () => {
+            setMsg("Connected to websocket");
+            setSocket(ws);
+          };
+          ws.onmessage = (event) => {
+            setFile(event.data);
+          };
+          ws.onerror = (error) => {
+            console.log(error);
+            setMsg("Failed to connect websocket, please check the url again");
+          };
+          ws.onclose = () => {
+            setSocket(null);
+          };
+          setSocket(ws);
+        }}
+      >
+        Connect
+      </button>
+      <button
+        type="submit"
+        disabled={!socket}
+        onClick={() => {
+          if (socket) {
+            socket.close();
+            setSocket(null);
+          }
+        }}
+      >
+        Disconnect
+      </button>
+      {file && (
+        <div style={{ border: "1px solid black" }}>
+          <div>File Received</div>
+          <button
+            onClick={() => {
+              downloadBlob(file);
+            }}
+          >
+            Download as a file
+          </button>
+          <button onClick={() => indexedDbManager.storeFile(file)}>
+            Store in the db
+          </button>
+        </div>
+      )}
     </PageWrapper>
   );
 }
