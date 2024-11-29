@@ -21,7 +21,7 @@ import {
   dimManager,
   performanceLogger,
 } from "@/components";
-import DebugLogger from "@/components/DebugLogger";
+// import DebugLogger from "@/components/DebugLogger";
 import ZoomSlider from "@/components/ZoomSlider";
 
 export default function Session() {
@@ -126,38 +126,54 @@ export default function Session() {
       </IconButton>
       <ModelSelector disabled={renderMode !== "hit"} onClick={onModelClick} />
 
-      <div style={{position: "absolute", top: "60px", left: "15px"}}>
-        <input type="text" id="ws-url" onChange={(event) => {setWsUrl(event.target.value)}} />
-        <button type="submit" onClick={() => {
-          if (wsUrl !== "") {
-            const ws = new WebSocket("ws://" + wsUrl);
-            console.log("Connecting to " + wsUrl);
-            ws.onopen = () => {
-              console.log("Connected to " + wsUrl);
+      <div style={{ position: "absolute", top: "60px", left: "15px" }}>
+        <input
+          type="text"
+          id="ws-url"
+          onChange={(event) => {
+            setWsUrl(event.target.value);
+          }}
+        />
+        <button
+          type="submit"
+          onClick={() => {
+            if (wsUrl !== "") {
+              const ws = new WebSocket("ws://" + wsUrl);
+              console.log("Connecting to " + wsUrl);
+              ws.onopen = () => {
+                console.log("Connected to " + wsUrl);
+                setWebsocket(ws);
+              };
+              ws.onmessage = (event) => {
+                console.log(event.data);
+                actionManager.loadModel(event.data);
+              };
+              ws.onerror = (error) => {
+                console.error(error);
+              };
+              ws.onclose = () => {
+                console.log("Disconnected from " + wsUrl);
+                setWebsocket(null);
+              };
               setWebsocket(ws);
             }
-            ws.onmessage = (event) => {
-              console.log(event.data);
-              actionManager.loadModel(event.data);
+          }}
+        >
+          Connect
+        </button>
+        <button
+          type="submit"
+          disabled={websocket !== null}
+          onClick={() => {
+            if (websocket) {
+              websocket.close();
+            } else {
+              console.error("No websocket connection to disconnect");
             }
-            ws.onerror = (error) => {
-              console.error(error);
-            }
-            ws.onclose = () => {
-              console.log("Disconnected from " + wsUrl);
-              setWebsocket(null);
-            }
-            setWebsocket(ws);
-          }
-        }}>Connect</button>
-        <button type="submit" disabled={websocket !== null} onClick={() => {
-          if (websocket) {
-            websocket.close();
-          } else {
-            console.error("No websocket connection to disconnect");
-          }
-        }
-        }>Disconnect</button>
+          }}
+        >
+          Disconnect
+        </button>
       </div>
       <ToolBar
         style={{
@@ -276,14 +292,14 @@ const IconButton = styled.button`
   box-sizing: border-box;
 `;
 
-const PerformanceLoggerContainer = styled.div`
-  width: fit-content;
-  height: fit-content;
+// const PerformanceLoggerContainer = styled.div`
+//   width: fit-content;
+//   height: fit-content;
 
-  position: absolute;
-  right: 15px;
-  top: 15px;
-`;
+//   position: absolute;
+//   right: 15px;
+//   top: 15px;
+// `;
 
 const AlertLoggerContainer = styled.div`
   width: fit-content;
