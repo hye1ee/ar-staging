@@ -52,6 +52,7 @@ export default class ThreeRenderer {
         if (this.renderMode === "hit") this.hitLoop(frame);
         else if (this.renderMode === "anchor") this.anchorLoop(frame, time);
         this.renderer.render(scene, camera);
+        // debugLogger.log(`x: ${camera.position.x.toFixed(3)} y: ${camera.position.y.toFixed(3)} z: ${camera.position.z.toFixed(3)}`);
         this.renderCallback.forEach((callback) => callback());
       }
     });
@@ -143,5 +144,9 @@ export default class ThreeRenderer {
 
     const newReferenceSpace = this.renderer.xr.getReferenceSpace()?.getOffsetReferenceSpace(offsetTransform);
     if (newReferenceSpace) this.renderer.xr.setReferenceSpace(newReferenceSpace);
+  }
+
+  public getXRCamera() {
+    return this.renderer.xr.getCamera();
   }
 }

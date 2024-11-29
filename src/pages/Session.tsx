@@ -21,11 +21,15 @@ import {
   dimManager,
   performanceLogger,
 } from "@/components";
+import DebugLogger from "@/components/DebugLogger";
+import ZoomSlider from "@/components/ZoomSlider";
 
 export default function Session() {
   const [renderMode, setRenderMode] = useState<RenderMode>("hit");
   const [modelMode, setModelMode] = useState<ModelMode>("stop");
-  const touch = useRef<number>();
+
+  const touchRotation = useRef<number>();
+  const [zoom, setZoom] = useState<number>(actionManager.getZoom());
 
   const [wsUrl, setWsUrl] = useState<string>("");
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
@@ -61,25 +65,30 @@ export default function Session() {
 
   window.addEventListener("pointerdown", (e: PointerEvent) => {
     if (renderMode === "anchor") {
-      touch.current = e.clientX;
+      touchRotation.current = e.clientX;
       window.addEventListener("pointermove", onPointerMove);
     }
   });
 
   const onPointerMove = (e: PointerEvent) => {
-    if (touch.current) {
-      const delta = e.clientX - touch.current;
+    if (touchRotation.current) {
+      const delta = e.clientX - touchRotation.current;
       actionManager.rotateWorld(delta);
-      touch.current = e.clientX;
+      touchRotation.current = e.clientX;
     }
   };
 
   window.addEventListener("pointerup", () => {
     if (renderMode === "anchor") {
-      touch.current = undefined;
+      touchRotation.current = undefined;
       window.removeEventListener("pointermove", onPointerMove);
     }
   });
+
+  const onZoomChange = (val: number) => {
+    setZoom(val);
+    actionManager.setZoom(val);
+  };
 
   //---------------------------------
 
@@ -103,7 +112,8 @@ export default function Session() {
   return (
     <PageWrapper>
       <Dim id="dim" />
-      <PerformanceLoggerContainer id="perform-log" />
+      <DebugLoggingContainer id="debug-log" />
+      {/* <PerformanceLoggerContainer id="perform-log" /> */}
       <AlertLoggerContainer id="alert-log" />
       <IconButton
         onClick={onMainClick}
@@ -182,6 +192,10 @@ export default function Session() {
           <Film size={24} color={renderMode === "film" ? "white" : "gray"} />
         </IconButton>
       </ToolBar>
+
+      {renderMode === "film" && (
+        <ZoomSlider value={zoom} onChange={onZoomChange} />
+      )}
 
       {renderMode === "film" && (
         <ToolBar
@@ -298,23 +312,23 @@ const AlertLoggerContainer = styled.div`
   transition: all 0.2s ease;
 `;
 
-// const DebugLoggingContainer = styled.div`
-//   width: 300px;
-//   height: 150px;
+const DebugLoggingContainer = styled.div`
+  width: 300px;
+  height: 150px;
 
-//   box-sizing: border-box;
-//   padding: 10px;
+  box-sizing: border-box;
+  padding: 10px;
 
-//   position: absolute;
-//   top: 0px;
-//   right: 50px;
-//   border-radius: 8px;
+  position: absolute;
+  top: 0px;
+  right: 50px;
+  border-radius: 8px;
 
-//   background-color: rgba(0, 0, 0, 0.3);
-//   color: white;
-//   opacity: 0;
-//   overflow-y: auto;
-// `;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: white;
+  opacity: 1;
+  overflow-y: auto;
+`;
 
 const ToolBar = styled.div`
   width: fit-content;
