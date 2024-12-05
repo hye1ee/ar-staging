@@ -12,7 +12,7 @@ const router = createBrowserRouter([
     element: <Main />,
   },
   {
-    path: "/session",
+    path: "/session/:id",
     element: <Session />,
   },
 ]);

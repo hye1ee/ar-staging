@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import styled from "styled-components";
 import {
   // House,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { ModelMode, RenderMode } from "@/managers/types";
-import { actionManager } from "@/managers";
+import { actionManager, indexedDbManager } from "@/managers";
 import ModelSelector from "@/components/ModelSelector";
 import {
   alertLogger,
@@ -23,18 +23,39 @@ import {
 } from "@/components";
 // import DebugLogger from "@/components/DebugLogger";
 import ZoomSlider from "@/components/ZoomSlider";
+import { colors } from "@/utils/styles";
 
 export default function Session() {
+  const { id } = useParams();
   const [renderMode, setRenderMode] = useState<RenderMode>("hit");
   const [modelMode, setModelMode] = useState<ModelMode>("stop");
 
   const touchRotation = useRef<number>();
   const [zoom, setZoom] = useState<number>(actionManager.getZoom());
 
-  const [wsUrl, setWsUrl] = useState<string>("");
-  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
-
   const navigate = useNavigate();
+
+  //------------------------------
+  useEffect(() => {
+    if (!id || !indexedDbManager.getFileIds().includes(parseInt(id))) {
+      navigate("/");
+      return;
+    }
+    const asyncWrapper = async () => {
+      const fileId = parseInt(id);
+      if (fileId === 0) actionManager.loadCube();
+      else {
+        const file = await indexedDbManager.getFile(parseInt(id));
+        if (!file) {
+          navigate("/");
+          return;
+        }
+        actionManager.loadModel(URL.createObjectURL(file));
+      }
+    };
+
+    asyncWrapper();
+  }, [id]);
 
   //---------------------------------
   // switch mode via buttons
@@ -58,10 +79,10 @@ export default function Session() {
     navigate("/");
   };
 
-  const onModelClick = (model: "testcube" | string) => {
-    if (model === "testcube") actionManager.loadCube();
-    else actionManager.loadModel(model);
-  };
+  // const onModelClick = (model: "testcube" | string) => {
+  //   if (model === "testcube") actionManager.loadCube();
+  //   else actionManager.loadModel(model);
+  // };
 
   window.addEventListener("pointerdown", (e: PointerEvent) => {
     if (renderMode === "anchor") {
@@ -124,57 +145,8 @@ export default function Session() {
           style={{ width: "100%", objectFit: "cover" }}
         />
       </IconButton>
-      <ModelSelector disabled={renderMode !== "hit"} onClick={onModelClick} />
+      <ModelSelector disabled={true} onClick={() => {}} />
 
-      <div style={{ position: "absolute", top: "60px", left: "15px" }}>
-        <input
-          type="text"
-          id="ws-url"
-          onChange={(event) => {
-            setWsUrl(event.target.value);
-          }}
-        />
-        <button
-          type="submit"
-          onClick={() => {
-            if (wsUrl !== "") {
-              const ws = new WebSocket("ws://" + wsUrl);
-              console.log("Connecting to " + wsUrl);
-              ws.onopen = () => {
-                console.log("Connected to " + wsUrl);
-                setWebsocket(ws);
-              };
-              ws.onmessage = (event) => {
-                console.log("msg", event.data);
-                // actionManager.loadModel(event.data);
-              };
-              ws.onerror = (error) => {
-                console.error(error);
-              };
-              ws.onclose = () => {
-                console.log("Disconnected from " + wsUrl);
-                setWebsocket(null);
-              };
-              setWebsocket(ws);
-            }
-          }}
-        >
-          Connect
-        </button>
-        <button
-          type="submit"
-          disabled={websocket !== null}
-          onClick={() => {
-            if (websocket) {
-              websocket.close();
-            } else {
-              console.error("No websocket connection to disconnect");
-            }
-          }}
-        >
-          Disconnect
-        </button>
-      </div>
       <ToolBar
         style={{
           position: "absolute",
@@ -186,26 +158,36 @@ export default function Session() {
         <IconButton
           onClick={() => switchRenderMode("hit")}
           style={{
-            backgroundColor: renderMode === "hit" ? "#FF0C81" : "black",
+            backgroundColor: renderMode === "hit" ? colors.pink : colors.black,
           }}
         >
-          <Move size={24} color={renderMode === "hit" ? "white" : "gray"} />
+          <Move
+            size={24}
+            color={renderMode === "hit" ? colors.white : colors.gray}
+          />
         </IconButton>
         <IconButton
           onClick={() => switchRenderMode("anchor")}
           style={{
-            backgroundColor: renderMode === "anchor" ? "#FF0C81" : "black",
+            backgroundColor:
+              renderMode === "anchor" ? colors.pink : colors.black,
           }}
         >
-          <Box size={24} color={renderMode === "anchor" ? "white" : "gray"} />
+          <Box
+            size={24}
+            color={renderMode === "anchor" ? colors.white : colors.gray}
+          />
         </IconButton>
         <IconButton
           onClick={() => switchRenderMode("film")}
           style={{
-            backgroundColor: renderMode === "film" ? "#FF0C81" : "black",
+            backgroundColor: renderMode === "film" ? colors.pink : colors.black,
           }}
         >
-          <Film size={24} color={renderMode === "film" ? "white" : "gray"} />
+          <Film
+            size={24}
+            color={renderMode === "film" ? colors.white : colors.gray}
+          />
         </IconButton>
       </ToolBar>
 
@@ -226,34 +208,37 @@ export default function Session() {
           <IconButton
             onClick={() => switchModelMode("play")}
             style={{
-              backgroundColor: modelMode === "play" ? "#FF0C81" : "black",
+              backgroundColor:
+                modelMode === "play" ? colors.pink : colors.black,
             }}
           >
             <CirclePlay
               size={24}
-              color={modelMode === "play" ? "white" : "gray"}
+              color={modelMode === "play" ? colors.white : colors.gray}
             />
           </IconButton>
           <IconButton
             onClick={() => switchModelMode("pause")}
             style={{
-              backgroundColor: modelMode === "pause" ? "#FF0C81" : "black",
+              backgroundColor:
+                modelMode === "pause" ? colors.pink : colors.black,
             }}
           >
             <CirclePause
               size={24}
-              color={modelMode === "pause" ? "white" : "gray"}
+              color={modelMode === "pause" ? colors.white : colors.gray}
             />
           </IconButton>
           <IconButton
             onClick={() => switchModelMode("stop")}
             style={{
-              backgroundColor: modelMode === "stop" ? "#FF0C81" : "black",
+              backgroundColor:
+                modelMode === "stop" ? colors.pink : colors.black,
             }}
           >
             <CircleStop
               size={24}
-              color={modelMode === "stop" ? "white" : "gray"}
+              color={modelMode === "stop" ? colors.white : colors.gray}
             />
           </IconButton>
         </ToolBar>
@@ -320,8 +305,8 @@ const AlertLoggerContainer = styled.div`
   align-items: center;
   justify-content: center;
 
-  background-color: black;
-  color: white;
+  background-color: ${colors.black};
+  color: ${colors.white};
   opacity: 0;
 
   z-index: 99;
@@ -341,7 +326,7 @@ const DebugLoggingContainer = styled.div`
   border-radius: 8px;
 
   background-color: rgba(0, 0, 0, 0.3);
-  color: white;
+  color: ${colors.white};
   opacity: 1;
   overflow-y: auto;
 `;
@@ -358,7 +343,7 @@ const ToolBar = styled.div`
   box-sizing: border-box;
   padding: 6px;
 
-  background-color: black;
+  background-color: ${colors.black};
   border-radius: 12px;
 
   gap: 6px;

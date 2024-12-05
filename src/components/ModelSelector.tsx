@@ -1,4 +1,5 @@
 // import { ChevronDown } from "lucide-react";
+import { colors } from "@/utils/styles";
 import React, { ChangeEvent } from "react";
 import styled from "styled-components";
 
@@ -46,7 +47,7 @@ const ModelSelectorWrapper = styled.div`
   align-items: center;
   justify-content: center;
 
-  background-color: black;
+  background-color: ${colors.black};
   border-radius: 8px;
 `;
 
