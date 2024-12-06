@@ -1,28 +1,26 @@
 // import { ChevronDown } from "lucide-react";
 import { colors } from "@/utils/styles";
-import React, { ChangeEvent } from "react";
+import React from "react";
 import styled from "styled-components";
 
 interface Props {
-  onClick: (model: "testcube" | string) => void;
-  disabled: boolean;
+  label: string;
 }
 
 export default function ModelSelector(props: Props) {
-  const onModelSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    props.onClick(e.target.value);
-  };
+  // const onModelSelect = (e: ChangeEvent<HTMLSelectElement>) => {
+  //   props.onClick(e.target.value);
+  // };
 
   return (
     <ModelSelectorWrapper>
       <ModelSelectorTitle
-        disabled={props.disabled}
-        name="pets"
-        id="pet-select"
-        onChange={onModelSelect}
+      // disabled={props.disabled}
+      // onChange={onModelSelect}
       >
-        <option value="testcube">cube.glb</option>
-        <option value="/src/assets/bunny.glb">Bunny.glb</option>
+        <div>{`${props.label}.glb`}</div>
+        {/* <option value="testcube">cube.glb</option>
+        <option value="/src/assets/bunny.glb">Bunny.glb</option> */}
       </ModelSelectorTitle>
       {/* <ChevronDown color="white" /> */}
     </ModelSelectorWrapper>
@@ -51,7 +49,7 @@ const ModelSelectorWrapper = styled.div`
   border-radius: 8px;
 `;
 
-const ModelSelectorTitle = styled.select`
+const ModelSelectorTitle = styled.div`
   width: 100%;
   height: 100%;
 

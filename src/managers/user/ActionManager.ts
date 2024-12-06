@@ -76,15 +76,4 @@ export default class ActionManager {
       threeRenderer.rotateSession(delta / 50);
     }
   }
-
-  public setZoom(val: number) {
-    sceneManager.setZoom(val);
-  }
-
-  public getZoom(): number {
-    console.log(threeRenderer.getXRCamera());
-    return sceneManager.getZoom();
-  }
-
-
 }

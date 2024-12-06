@@ -25,7 +25,10 @@ export default function Main() {
   const [files, setFiles] = useState<number[]>(indexedDbManager.getFileIds());
 
   useEffect(() => {
-    setFiles(indexedDbManager.getFileIds());
+    const asyncWrapper = async () => {
+      setFiles(await indexedDbManager.updateFileList());
+    };
+    asyncWrapper();
   }, []);
 
   const isSessionValid = async () => {

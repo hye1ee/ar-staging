@@ -38,12 +38,13 @@ export default class IndexedDBManager {
     this.updateFileList();
   }
 
-  private async updateFileList() { // get all Ids from db and update property
-    if (!this.db) return;
+  public async updateFileList(): Promise<number[]> { // get all Ids from db and update property
+    if (!this.db) return [];
     const tx = this.db.transaction(this.STORE_NAME, 'readonly');
     const store = tx.objectStore(this.STORE_NAME);
     const allKeys = await store.getAllKeys();
     this.files = allKeys.map(key => key as number);
+    return this.files
   }
 
   public async storeFile(file: Blob): Promise<void> {

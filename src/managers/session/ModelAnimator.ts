@@ -68,6 +68,8 @@ export default class ModelAnimator {
   public playAnimation(): void {
     if (this.actions) {
       DebugLogger.getInstance().log("Start animation");
+      console.log(this.mixer, this.actions)
+
       this.actions.forEach(action => {
         if (action.paused) action.paused = false;
         else action.play(); // at first, paused value is false

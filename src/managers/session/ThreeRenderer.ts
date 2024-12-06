@@ -51,6 +51,7 @@ export default class ThreeRenderer {
       if (frame) {
         if (this.renderMode === "hit") this.hitLoop(frame);
         else if (this.renderMode === "anchor") this.anchorLoop(frame, time);
+        else this.filmLoop(frame, time)
         this.renderer.render(scene, camera);
         // debugLogger.log(`x: ${camera.position.x.toFixed(3)} y: ${camera.position.y.toFixed(3)} z: ${camera.position.z.toFixed(3)}`);
         this.renderCallback.forEach((callback) => callback());
@@ -108,7 +109,7 @@ export default class ThreeRenderer {
   }
 
   /* If anchor exist, update model */
-  public anchorLoop(frame: XRFrame, time: number): void {
+  public anchorLoop(frame: XRFrame, _time: number): void {
     if (!modelAnimator.isModelLocated()) {
       const hitPose = this.getHitPose(frame);
       if (!hitPose) return;
@@ -124,6 +125,12 @@ export default class ThreeRenderer {
         modelAnimator.locateModel(hitPose.transform);
       }, 100)
     }
+  }
+
+  public filmLoop(_frame: XRFrame, time: number): void {
+    // before locating model do nothing
+    if (!modelAnimator.isModelLocated()) return;
+
     /* Animation loop */
     modelAnimator.update((time - this.prevTime) / 1000);
     this.prevTime = time;

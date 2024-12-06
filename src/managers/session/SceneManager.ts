@@ -73,18 +73,6 @@ export default class SceneManager {
     this.scene.add(model)
   }
 
-  public getZoom(): number {
-    return this.camera.fov
-  }
-
-  public setZoom(zoom: number): void {
-    this.camera.fov = zoom;
-    this.camera.updateProjectionMatrix();
-    console.log(this.camera, zoom);
-
-
-  }
-
   /*
    * ----------------------------------------------------------------
    * User Model Managing

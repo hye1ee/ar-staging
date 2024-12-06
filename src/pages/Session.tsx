@@ -22,7 +22,6 @@ import {
   performanceLogger,
 } from "@/components";
 // import DebugLogger from "@/components/DebugLogger";
-import ZoomSlider from "@/components/ZoomSlider";
 import { colors } from "@/utils/styles";
 
 export default function Session() {
@@ -31,21 +30,24 @@ export default function Session() {
   const [modelMode, setModelMode] = useState<ModelMode>("stop");
 
   const touchRotation = useRef<number>();
-  const [zoom, setZoom] = useState<number>(actionManager.getZoom());
 
   const navigate = useNavigate();
 
   //------------------------------
   useEffect(() => {
-    if (!id || !indexedDbManager.getFileIds().includes(parseInt(id))) {
+    const fileId = parseInt(id ?? "-1");
+    if (
+      fileId === -1 ||
+      (fileId > 0 && !indexedDbManager.getFileIds().includes(fileId))
+    ) {
       navigate("/");
       return;
     }
+
     const asyncWrapper = async () => {
-      const fileId = parseInt(id);
       if (fileId === 0) actionManager.loadCube();
       else {
-        const file = await indexedDbManager.getFile(parseInt(id));
+        const file = await indexedDbManager.getFile(fileId);
         if (!file) {
           navigate("/");
           return;
@@ -106,11 +108,6 @@ export default function Session() {
     }
   });
 
-  const onZoomChange = (val: number) => {
-    setZoom(val);
-    actionManager.setZoom(val);
-  };
-
   //---------------------------------
 
   useEffect(() => {
@@ -145,7 +142,7 @@ export default function Session() {
           style={{ width: "100%", objectFit: "cover" }}
         />
       </IconButton>
-      <ModelSelector disabled={true} onClick={() => {}} />
+      <ModelSelector label={id === "0" ? "testcube" : "scene" + id} />
 
       <ToolBar
         style={{
@@ -191,9 +188,9 @@ export default function Session() {
         </IconButton>
       </ToolBar>
 
-      {renderMode === "film" && (
+      {/* {renderMode === "film" && (
         <ZoomSlider value={zoom} onChange={onZoomChange} />
-      )}
+      )} */}
 
       {renderMode === "film" && (
         <ToolBar
